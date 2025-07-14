@@ -1,5 +1,5 @@
 # OnePlus Kernel Build Action
-### English | [简体中文](https://github.com/lsdoverdose/Action-Kernel-Build-OnePlus/blob/readme_cn.md)
+### English | [简体中文](https://github.com/lsdoverdose/Action-Kernel-Build-OnePlus/blob/master/readme_cn.md)
 
 ## 🏗 Purpose
 This repository provides ready-to-use GitHub Actions workflows optimized for compiling kernels for OnePlus devices.
