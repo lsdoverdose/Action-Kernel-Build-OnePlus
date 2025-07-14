@@ -3,33 +3,106 @@ name: Universal OnePlus Kernel Workflow
 on:
   workflow_dispatch:
     inputs:
-      # 基础配置组
-      base_config:
-        description: "基础配置(JSON格式)"
+      CPU:
+        description: "CPU型号"
         required: true
-        default: '{"CPU":"sm8650","FEIL":"oneplus_12","CPUD":"pineapple","ANDROID_VERSION":"android14","KERNEL_VERSION":"6.1","BUILD_METHOD":"gki"}'
-      
-      # SU方案配置组
-      su_config:
-        description: "SU配置(JSON格式)"
+        type: choice
+        options:
+          - 'sm8650'
+          - 'sm8550'
+          - 'sm8450'
+          - 'sm8475'
+          - 'sm7675'
+          - 'sm7550'
+          - 'sm6375'
+        default: 'sm8650'
+
+      MODEL:
+        description: "选择机型"
         required: true
-        default: '{"SU_SOLUTION":"KernelSU","SU_VERSION":"main","SU_CUSTOM_VERSION":"10200","SUSFS_ENABLED":false,"KPM_ENABLED":false}'
-      
-      # 功能配置组
-      feature_config:
-        description: "功能配置(JSON格式)"
+        type: choice
+        options:
+          - 'oneplus_12'
+          - 'oneplus_ace5'
+          - 'oneplus_13r'
+          - 'oneplus_12r'
+          - 'oneplus_ace3'
+          - 'oneplus_ace3_pro' 
+        default: 'oneplus_ace5'
+        
+      PLATFORM:
+        description: "平台代号"
         required: true
-        default: '{"LZ4KD_ENABLED":false,"BBR_ENABLED":false,"PROXY_ENABLED":true}'
-      
-      # 输出配置组
-      output_config:
-        description: "输出配置(JSON格式)"
+        type: choice
+        options:
+          - 'pineapple'
+          - 'kalama'
+          - 'waipio'
+          - 'crow'
+        default: 'pineapple'
+        
+      KERNEL_VERSION:
+        description: "内核版本"
         required: true
-        default: '{"UPLOAD_ZRAM_KO":false,"UPLOAD_CRYPTO_ZSTD_KO":false,"OUTPUT_FORMAT":"AnyKernel3","PACKAGE_ALL":false,"KERNEL_NAME_SUFFIX":"-custom-kernel"}'
+        type: choice
+        options:
+          - '6.6'
+          - '6.1'
+          - '5.15'
+          - '5.10'
+        default: '6.1'
+        
+      BUILD_TYPE:
+        description: "编译类型"
+        required: true
+        type: choice
+        options:
+          - 'gki'
+          - 'perf'
+        default: 'gki'
+
+      SU_SOLUTION:
+        description: "选择SU方案"
+        required: true
+        type: choice
+        options:
+          - 'None'
+          - 'KernelSU'
+          - 'KernelSU_Next'
+        default: 'KernelSU'
+        
+      SU_VERSION:
+        description: "SU版本"
+        required: true
+        type: choice
+        options:
+          - 'tag'
+          - 'main'
+          - 'custom'
+        default: 'main'
+        
+      SUSFS_ENABLED:
+        description: "启用SUSFS"
+        required: true
+        type: boolean
+        default: false
+        
+      KPM_ENABLED:
+        description: "启用KPM"
+        required: true
+        type: boolean
+        default: false
+        
+      LZ4KD_ENABLED:
+        description: "启用LZ4KD压缩"
+        required: true
+        type: boolean
+        default: false
+
 
 jobs:
   build:
-    name: Build for ${{ fromJson(inputs.base_config).FEIL }} (${{ fromJson(inputs.su_config).SU_SOLUTION }})
+    name: Build for ${{ github.event.inputs.FEIL }} (${{ github.event.inputs.SU_SOLUTION }})
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -38,37 +111,6 @@ jobs:
       CCACHE_MAXSIZE: 8G
       
     steps:
-      # ====================== 解析输入参数 ======================
-      - name: "📝 Parse Input Parameters | 解析输入参数"
-        id: parse_inputs
-        run: |
-          # 解析基础配置
-          echo "CPU=$(echo '${{ inputs.base_config }}' | jq -r '.CPU')" >> $GITHUB_OUTPUT
-          echo "FEIL=$(echo '${{ inputs.base_config }}' | jq -r '.FEIL')" >> $GITHUB_OUTPUT
-          echo "CPUD=$(echo '${{ inputs.base_config }}' | jq -r '.CPUD')" >> $GITHUB_OUTPUT
-          echo "ANDROID_VERSION=$(echo '${{ inputs.base_config }}' | jq -r '.ANDROID_VERSION')" >> $GITHUB_OUTPUT
-          echo "KERNEL_VERSION=$(echo '${{ inputs.base_config }}' | jq -r '.KERNEL_VERSION')" >> $GITHUB_OUTPUT
-          echo "BUILD_METHOD=$(echo '${{ inputs.base_config }}' | jq -r '.BUILD_METHOD')" >> $GITHUB_OUTPUT
-          
-          # 解析SU配置
-          echo "SU_SOLUTION=$(echo '${{ inputs.su_config }}' | jq -r '.SU_SOLUTION')" >> $GITHUB_OUTPUT
-          echo "SU_VERSION=$(echo '${{ inputs.su_config }}' | jq -r '.SU_VERSION')" >> $GITHUB_OUTPUT
-          echo "SU_CUSTOM_VERSION=$(echo '${{ inputs.su_config }}' | jq -r '.SU_CUSTOM_VERSION')" >> $GITHUB_OUTPUT
-          echo "SUSFS_ENABLED=$(echo '${{ inputs.su_config }}' | jq -r '.SUSFS_ENABLED')" >> $GITHUB_OUTPUT
-          echo "KPM_ENABLED=$(echo '${{ inputs.su_config }}' | jq -r '.KPM_ENABLED')" >> $GITHUB_OUTPUT
-          
-          # 解析功能配置
-          echo "LZ4KD_ENABLED=$(echo '${{ inputs.feature_config }}' | jq -r '.LZ4KD_ENABLED')" >> $GITHUB_OUTPUT
-          echo "BBR_ENABLED=$(echo '${{ inputs.feature_config }}' | jq -r '.BBR_ENABLED')" >> $GITHUB_OUTPUT
-          echo "PROXY_ENABLED=$(echo '${{ inputs.feature_config }}' | jq -r '.PROXY_ENABLED')" >> $GITHUB_OUTPUT
-          
-          # 解析输出配置
-          echo "UPLOAD_ZRAM_KO=$(echo '${{ inputs.output_config }}' | jq -r '.UPLOAD_ZRAM_KO')" >> $GITHUB_OUTPUT
-          echo "UPLOAD_CRYPTO_ZSTD_KO=$(echo '${{ inputs.output_config }}' | jq -r '.UPLOAD_CRYPTO_ZSTD_KO')" >> $GITHUB_OUTPUT
-          echo "OUTPUT_FORMAT=$(echo '${{ inputs.output_config }}' | jq -r '.OUTPUT_FORMAT')" >> $GITHUB_OUTPUT
-          echo "PACKAGE_ALL=$(echo '${{ inputs.output_config }}' | jq -r '.PACKAGE_ALL')" >> $GITHUB_OUTPUT
-          echo "KERNEL_NAME_SUFFIX=$(echo '${{ inputs.output_config }}' | jq -r '.KERNEL_NAME_SUFFIX')" >> $GITHUB_OUTPUT
-
       # ====================== 初始化阶段 ======================
       - name: "🚀 Maximize Build Space | 最大化构建空间"
         uses: easimon/maximize-build-space@master
@@ -481,6 +523,55 @@ jobs:
           name: ${{ github.event.inputs.FEIL }}_${{ github.event.inputs.SU_SOLUTION != 'None' && github.event.inputs.SU_SOLUTION || 'NoSU' }}_${{ github.event.inputs.KERNEL_VERSION }}
           path: |
             output/*
+          retention-days: 7
+
+      - name: "📦 Package Release | 打包发布"
+        run: |
+          echo "📦 准备发布包..."
+          
+          # 创建发布目录
+          mkdir -p release
+          cd release
+          
+          # 复制AnyKernel3
+          cp -r ../output/AnyKernel3 ./
+          
+          # 复制内核模块(如果存在)
+          if [ -d "../output/modules" ]; then
+            cp -r ../output/modules ./
+          fi
+          
+          # 收集系统信息
+          {
+            echo "# Build Information"
+            echo "- Date: $(date)"
+            echo "- Host: $(uname -a)"
+            echo "- Compiler: $(clang --version | head -n 1)"
+            echo "- Architecture: $(uname -m)"
+            ccache -s
+          } > system_info.txt
+          
+          # 复制编译日志(如果存在)
+          if [ -f "../kernel_workspace/build.log" ]; then
+            cp ../kernel_workspace/build.log ./
+          fi
+          
+          # 创建ZIP包
+          ZIP_NAME="kernel_${{ github.event.inputs.MODEL }}_${{ github.event.inputs.PLATFORM }}_${{ github.event.inputs.KERNEL_VERSION }}"
+          ZIP_NAME+="_${{ github.event.inputs.SU_SOLUTION != 'None' && github.event.inputs.SU_SOLUTION || 'NoSU' }}"
+          ZIP_NAME+=".zip"
+          
+          zip -r "../$ZIP_NAME" ./*
+          mv "../$ZIP_NAME" ./
+          
+          echo "✅ 发布包准备完成: $ZIP_NAME"
+          cd ..
+
+      - name: "📤 Upload Release Package | 上传发布包" 
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel_release
+          path: release/*
           retention-days: 7
 
       - name: 📊 Post-build disk check (构建后空间检查)
