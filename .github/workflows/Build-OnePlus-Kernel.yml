@@ -3,189 +3,33 @@ name: Universal OnePlus Kernel Workflow
 on:
   workflow_dispatch:
     inputs:
-      # 基础配置
-      CPU:
-        description: "CPU分支"
+      # 基础配置组
+      base_config:
+        description: "基础配置(JSON格式)"
         required: true
-        type: choice
-        options:
-          - 'sm8650'
-          - 'sm8550'
-          - 'sm8450'
-          - 'sm8475'
-          - 'sm7675'
-          - 'sm7550'
-          - 'sm6375'
-        default: 'sm8650'
-        
-      FEIL:
-        description: "手机型号"
+        default: '{"CPU":"sm8650","FEIL":"oneplus_12","CPUD":"pineapple","ANDROID_VERSION":"android14","KERNEL_VERSION":"6.1","BUILD_METHOD":"gki"}'
+      
+      # SU方案配置组
+      su_config:
+        description: "SU配置(JSON格式)"
         required: true
-        type: choice
-        options:
-          - 'oneplus_12'
-          - 'oneplus_ace3_pro'
-          - 'oneplus_ace5'
-          - 'oneplus_13r'
-          - 'oneplus_pad2'
-          - 'oneplus_pad_pro'
-          - 'oneplus_11'
-          - 'oneplus_12r'
-          - 'oneplus_ace2_pro'
-          - 'oneplus_ace3'
-          - 'oneplus_open'
-          - 'oneplus_10t'
-          - 'oneplus_11r'
-          - 'oneplus_ace2'
-          - 'oneplus_ace_pro'
-          - 'oneplus_10_pro'
-          - 'oneplus_ace_3v'
-          - 'oneplus_nord_4'
-          - 'oneplus_nord_ce4_lite_5g'
-          - 'oneplus_nord_ce4'
-        default: 'oneplus_ace5'
-        
-      CPUD:
-        description: "处理器代号"
+        default: '{"SU_SOLUTION":"KernelSU","SU_VERSION":"main","SU_CUSTOM_VERSION":"10200","SUSFS_ENABLED":false,"KPM_ENABLED":false}'
+      
+      # 功能配置组
+      feature_config:
+        description: "功能配置(JSON格式)"
         required: true
-        type: choice
-        options:
-          - 'pineapple'
-          - 'kalama'
-          - 'waipio'
-          - 'crow'
-          - 'blair'
-        default: 'pineapple'
-        
-      ANDROID_VERSION:
-        description: "内核安卓版本"
+        default: '{"LZ4KD_ENABLED":false,"BBR_ENABLED":false,"PROXY_ENABLED":true}'
+      
+      # 输出配置组
+      output_config:
+        description: "输出配置(JSON格式)"
         required: true
-        type: choice
-        options:
-          - 'android15'
-          - 'android14'
-          - 'android13'
-          - 'android12'
-        default: 'android14'
-        
-      KERNEL_VERSION:
-        description: "内核版本"
-        required: true
-        type: choice
-        options:
-          - '6.6'
-          - '6.1'
-          - '5.15'
-          - '5.10'
-        default: '6.1'
-        
-      BUILD_METHOD:
-        description: "编译方式"
-        required: true
-        type: choice
-        options:
-          - 'gki'
-          - 'perf'
-        default: 'gki'
-
-      # SU方案配置
-      SU_SOLUTION:
-        description: "选择SU方案"
-        required: true
-        type: choice
-        options:
-          - 'None'
-          - 'KernelSU'
-          - 'KernelSU_Next'
-          - 'MKSU'
-          - 'RKSU'
-          - 'SKSU'
-        default: 'KernelSU'
-        
-      SU_VERSION:
-        description: "SU版本选择"
-        required: true
-        when: SU_SOLUTION != 'None'
-        type: choice
-        options:
-          - 'tag'
-          - 'main'
-          - 'custom'
-        default: 'main'
-        
-      SU_CUSTOM_VERSION:
-        description: "自定义SU版本号(仅当选择custom时有效)"
-        required: false
-        default: '10200'
-        
-      # 功能配置
-      SUSFS_ENABLED:
-        description: "是否启用SUSFS"
-        required: true
-        type: boolean
-        default: false
-        
-      KPM_ENABLED:
-        description: "是否启用KPM(内核模块补丁)"
-        required: true
-        type: boolean
-        default: false
-        
-      LZ4KD_ENABLED:
-        description: "是否启用lz4kd压缩(关闭则6.1+启用lz4+zstd)"
-        required: true
-        type: boolean
-        default: false
-        
-      BBR_ENABLED:
-        description: "是否启用BBR网络算法"
-        required: true
-        type: boolean
-        default: false
-        
-      PROXY_ENABLED:
-        description: "是否启用代理性能优化"
-        required: true
-        type: boolean
-        default: true
-        
-      # 输出配置
-      UPLOAD_ZRAM_KO:
-        description: "是否上传zram.ko"
-        required: true
-        type: boolean
-        default: false
-        
-      UPLOAD_CRYPTO_ZSTD_KO:
-        description: "是否上传crypto_zstd.ko"
-        required: true
-        type: boolean
-        default: false
-        
-      OUTPUT_FORMAT:
-        description: "输出格式"
-        required: true
-        type: choice
-        options:
-          - 'AnyKernel3'
-          - 'boot_img'
-          - 'raw_image'
-        default: 'AnyKernel3'
-        
-      PACKAGE_ALL:
-        description: "是否打包所有产物为zip(压缩级别7)"
-        required: true
-        type: boolean
-        default: false
-        
-      KERNEL_NAME_SUFFIX:
-        description: "内核名称后缀"
-        required: false
-        default: '-custom-kernel'
+        default: '{"UPLOAD_ZRAM_KO":false,"UPLOAD_CRYPTO_ZSTD_KO":false,"OUTPUT_FORMAT":"AnyKernel3","PACKAGE_ALL":false,"KERNEL_NAME_SUFFIX":"-custom-kernel"}'
 
 jobs:
   build:
-    name: Build for ${{ github.event.inputs.FEIL }} (${{ github.event.inputs.SU_SOLUTION }})
+    name: Build for ${{ fromJson(inputs.base_config).FEIL }} (${{ fromJson(inputs.su_config).SU_SOLUTION }})
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -194,6 +38,37 @@ jobs:
       CCACHE_MAXSIZE: 8G
       
     steps:
+      # ====================== 解析输入参数 ======================
+      - name: "📝 Parse Input Parameters | 解析输入参数"
+        id: parse_inputs
+        run: |
+          # 解析基础配置
+          echo "CPU=$(echo '${{ inputs.base_config }}' | jq -r '.CPU')" >> $GITHUB_OUTPUT
+          echo "FEIL=$(echo '${{ inputs.base_config }}' | jq -r '.FEIL')" >> $GITHUB_OUTPUT
+          echo "CPUD=$(echo '${{ inputs.base_config }}' | jq -r '.CPUD')" >> $GITHUB_OUTPUT
+          echo "ANDROID_VERSION=$(echo '${{ inputs.base_config }}' | jq -r '.ANDROID_VERSION')" >> $GITHUB_OUTPUT
+          echo "KERNEL_VERSION=$(echo '${{ inputs.base_config }}' | jq -r '.KERNEL_VERSION')" >> $GITHUB_OUTPUT
+          echo "BUILD_METHOD=$(echo '${{ inputs.base_config }}' | jq -r '.BUILD_METHOD')" >> $GITHUB_OUTPUT
+          
+          # 解析SU配置
+          echo "SU_SOLUTION=$(echo '${{ inputs.su_config }}' | jq -r '.SU_SOLUTION')" >> $GITHUB_OUTPUT
+          echo "SU_VERSION=$(echo '${{ inputs.su_config }}' | jq -r '.SU_VERSION')" >> $GITHUB_OUTPUT
+          echo "SU_CUSTOM_VERSION=$(echo '${{ inputs.su_config }}' | jq -r '.SU_CUSTOM_VERSION')" >> $GITHUB_OUTPUT
+          echo "SUSFS_ENABLED=$(echo '${{ inputs.su_config }}' | jq -r '.SUSFS_ENABLED')" >> $GITHUB_OUTPUT
+          echo "KPM_ENABLED=$(echo '${{ inputs.su_config }}' | jq -r '.KPM_ENABLED')" >> $GITHUB_OUTPUT
+          
+          # 解析功能配置
+          echo "LZ4KD_ENABLED=$(echo '${{ inputs.feature_config }}' | jq -r '.LZ4KD_ENABLED')" >> $GITHUB_OUTPUT
+          echo "BBR_ENABLED=$(echo '${{ inputs.feature_config }}' | jq -r '.BBR_ENABLED')" >> $GITHUB_OUTPUT
+          echo "PROXY_ENABLED=$(echo '${{ inputs.feature_config }}' | jq -r '.PROXY_ENABLED')" >> $GITHUB_OUTPUT
+          
+          # 解析输出配置
+          echo "UPLOAD_ZRAM_KO=$(echo '${{ inputs.output_config }}' | jq -r '.UPLOAD_ZRAM_KO')" >> $GITHUB_OUTPUT
+          echo "UPLOAD_CRYPTO_ZSTD_KO=$(echo '${{ inputs.output_config }}' | jq -r '.UPLOAD_CRYPTO_ZSTD_KO')" >> $GITHUB_OUTPUT
+          echo "OUTPUT_FORMAT=$(echo '${{ inputs.output_config }}' | jq -r '.OUTPUT_FORMAT')" >> $GITHUB_OUTPUT
+          echo "PACKAGE_ALL=$(echo '${{ inputs.output_config }}' | jq -r '.PACKAGE_ALL')" >> $GITHUB_OUTPUT
+          echo "KERNEL_NAME_SUFFIX=$(echo '${{ inputs.output_config }}' | jq -r '.KERNEL_NAME_SUFFIX')" >> $GITHUB_OUTPUT
+
       # ====================== 初始化阶段 ======================
       - name: "🚀 Maximize Build Space | 最大化构建空间"
         uses: easimon/maximize-build-space@master
