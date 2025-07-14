@@ -17,7 +17,7 @@ on:
           - 'sm6375'
         default: 'sm8650'
 
-      MODEL:
+      FEIL:
         description: "选择机型"
         required: true
         type: choice
@@ -99,6 +99,40 @@ on:
         type: boolean
         default: false
 
+      ANDROID_VERSION:
+        description: "Android版本"
+        required: true
+        type: choice
+        options:
+          - '14'
+          - '13'
+          - '12'
+        default: '14'
+      OUTPUT_FORMAT:
+        description: "输出格式"
+        required: true
+        type: choice
+        options:
+          - 'AnyKernel3'
+          - 'boot_img'
+          - 'raw_image'
+        default: 'AnyKernel3'
+      UPLOAD_ZRAM_KO:
+        description: "上传zram.ko"
+        required: false
+        type: boolean
+        default: false
+      UPLOAD_CRYPTO_ZSTD_KO:
+        description: "上传crypto_zstd.ko"
+        required: false
+        type: boolean
+        default: false
+      PACKAGE_ALL:
+        description: "打包所有产物"
+        required: false
+        type: boolean
+        default: false
+
 
 jobs:
   build:
@@ -162,7 +196,7 @@ jobs:
           echo "🌐 正在初始化内核仓库..."
           mkdir kernel_workspace && cd kernel_workspace
           
-          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
+          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
           echo "🔄 同步代码库(使用$(nproc --all)线程)..."
           repo sync -c -j$(nproc --all) --no-tags --no-clone-bundle --force-sync
           
@@ -176,7 +210,8 @@ jobs:
           sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' kernel_platform/common/scripts/setlocalversion
           sed -i '$s|echo "\$res"|echo "${{ github.event.inputs.KERNEL_NAME_SUFFIX }}"|' kernel_platform/common/scripts/setlocalversion
           sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" kernel_platform/build/kernel/kleaf/impl/stamp.bzl
-          sed -i 's|build-timestamp = $(or $(KBUILD_BUILD_TIMESTAMP), $(build-timestamp-auto))|build-timestamp = "Wed Mar 12 08:35:37 UTC 2025"|' kernel_platform/common/init/Makefile
+          # 修改为北京时间
+          sed -i "s|build-timestamp = .*|build-timestamp = \"$(TZ='Asia/Shanghai' date '+%a %b %d %H:%M:%S %Z %Y')\"|" kernel_platform/common/init/Makefile
           echo "✅ 内核源码准备完成"
 
       # ====================== SU方案配置阶段 ======================
@@ -359,7 +394,7 @@ jobs:
           cd kernel_workspace
           
           # 设置编译环境变量
-          export KBUILD_BUILD_TIMESTAMP="Wed May 29 07:25:40 UTC 2025"
+          export KBUILD_BUILD_TIMESTAMP="$(TZ='Asia/Shanghai' date '+%a %b %d %H:%M:%S %Z %Y')"
           export KBUILD_BUILD_VERSION=1
           export PATH="/usr/lib/ccache:$PATH"
           
@@ -416,7 +451,7 @@ jobs:
               
               # 复制设备树文件
               mkdir -p ./AnyKernel3/dtb
-              find "./kernel_workspace/kernel_platform/out/msm-kernel-${{ github.event.inputs.CPUD }}-${{ github.event.inputs.BUILD_METHOD }}/dist/" -name "*.dtb" -exec cp {} ./AnyKernel3/dtb/ \;
+              find "./kernel_workspace/kernel_platform/out/msm-kernel-${{ github.event.inputs.CPUD }}-${{ github.event.inputs.BUILD_METHOD }}/dist/" -name "*.dtb" -exec cp {} ./AnyKernel3/dtb/ \; || true
               
               # 创建基本的anykernel.sh脚本
               cat > ./AnyKernel3/anykernel.sh <<EOF
@@ -557,7 +592,7 @@ jobs:
           fi
           
           # 创建ZIP包
-          ZIP_NAME="kernel_${{ github.event.inputs.MODEL }}_${{ github.event.inputs.PLATFORM }}_${{ github.event.inputs.KERNEL_VERSION }}"
+          ZIP_NAME="kernel_${{ github.event.inputs.FEIL }}_${{ github.event.inputs.PLATFORM }}_${{ github.event.inputs.KERNEL_VERSION }}"
           ZIP_NAME+="_${{ github.event.inputs.SU_SOLUTION != 'None' && github.event.inputs.SU_SOLUTION || 'NoSU' }}"
           ZIP_NAME+=".zip"
           
